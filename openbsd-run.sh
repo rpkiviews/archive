@@ -1,6 +1,6 @@
 #!/bin/sh
 # execute rpki-client, tag & sign output, store as signed tarball
-# September 2021, Job Snijders <job@sobornost.net>
+# June 2022, Job Snijders <job@sobornost.net>
 
 set -ev
 SKEY="/root/.signify/amber.massars.net.sec"
@@ -9,7 +9,7 @@ ARCHIVES="/var/www/htdocs/rpkidata"
 TMP="$(mktemp -d /tmp/run.XXXXXXXXXX)"
 
 cd /root
-rpki-client -R -vjc 2>&1 \
+rpki-client -vjc 2>&1 \
         | /usr/local/bin/ts %Y%m%dT%H%M%SZ \
         | tee log
 TIMESTAMP="$(date '+%Y%m%dT%H%M%SZ')"
@@ -26,9 +26,13 @@ sha256 -b -h SHA256 *
 signify -S -e -s "${SKEY}" -m SHA256 -x SHA256.sig
 cd ..
 ln -s /var/cache/rpki-client data
+mv /var/cache/rpki-client/.rrdp "/tmp/rrdp-${TIMESTAMP}"
+mv /var/cache/rpki-client/.rsync"/tmp/rsync-${TIMESTAMP}"
 cd ..
-tar hczf "rpki-${TIMESTAMP}-unsigned.tgz" "rpki-${TIMESTAMP}"
+gtar hczf "rpki-${TIMESTAMP}-unsigned.tgz" "rpki-${TIMESTAMP}"
 rm -rf "rpki-${TIMESTAMP}"
+mv "/tmp/rrdp-${TIMESTAMP}" /var/cache/rpki-client/.rrdp
+mv "/tmp/rsync-${TIMESTAMP}" /var/cache/rpki-client/.rsync
 signify -Sz -s "${SKEY}" \
         -m "rpki-${TIMESTAMP}-unsigned.tgz" \
         -x "${ARCHIVES}/${DAY}/rpki-${TIMESTAMP}.tgz"
