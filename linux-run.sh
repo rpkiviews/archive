@@ -2,7 +2,7 @@
 # execute rpki-client, tag & sign output, store as ZFS snapshot,
 # store as signed tarball
 #
-# December 2020
+# April 2023
 #
 # Job Snijders <job@sobornost.net>
 
@@ -15,13 +15,8 @@ SNAPSHOT="/tank/rpkirepositories"
 cd "${SNAPSHOT}"
 sudo chown -R _rpki-client output
 
-timeout -k 10m 20m \
-        sudo \
-        rpki-client -e rsync -v -jc \
-                -d "${SNAPSHOT}/data" \
-                "${SNAPSHOT}/output" 2>&1 \
-        | ts %Y%m%dT%H%M%SZ \
-        | sudo tee output/log
+sudo rpki-client -s 1800 -cjmv -d "${SNAPSHOT}/data" "${SNAPSHOT}/output" 2>&1 \
+	| ts %Y%m%dT%H%M%SZ | sudo tee output/log
 
 # clean up empty directories, set permissions
 cd data/
@@ -34,7 +29,9 @@ sudo chown -R job .
 mv log rpki-client.log
 mv csv rpki-client.csv
 mv json rpki-client.json
-sha256sum --tag rpki-client.log rpki-client.csv rpki-client.json > SHA256
+mv metrics rpki-client.metrics
+sha256sum --tag rpki-client.log rpki-client.csv rpki-client.json \
+	rpki-client.metrics > SHA256
 signify-openbsd -S -e -s "${SKEY}" -m SHA256 -x SHA256.sig
 
 TIMESTAMP="$(date '+%Y%m%dT%H%M%SZ')"
