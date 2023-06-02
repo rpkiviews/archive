@@ -9,9 +9,8 @@ ARCHIVES="/var/www/htdocs/rpkidata"
 TMP="$(mktemp -d /tmp/run.XXXXXXXXXX)"
 
 cd /root
-rpki-client -vjc 2>&1 \
-        | /usr/local/bin/ts %Y%m%dT%H%M%SZ \
-        | tee log
+rpki-client -vjc 2>&1 | ts %Y%m%dT%H%M%SZ | tee log
+
 TIMESTAMP="$(date '+%Y%m%dT%H%M%SZ')"
 DAY="$(date '+%Y/%m/%d')"
 mkdir -p "${ARCHIVES}/${DAY}"
